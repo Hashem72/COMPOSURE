@@ -1,0 +1,2 @@
+Here you will see some code that are used for analysis of composure. The main code for composure  is PhyloParseAlignmentPenta which sits in BIOBITS/src/compousre2.
+Note that here (for analisis of composure data) the main code is VITERBI3 which sits in hmmwithdirichletprior package. the diffrence between VITERBI3 and 2 is that in 2 you will see my own implementation of vitrbi algorithm (without usuing biojava)  but in VITERBI3 I have used biojava dynamic programming features to implement viterbi, backward, forward and posterior decoding algorithms. 

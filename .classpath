@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
+	<classpathentry kind="lib" path="/Users/hk3/classpath/bjv2-core-0.1.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="http://www.derkholm.net/svn/repos/bjv2/website/docs/api/org/bjv2/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/Users/hk3/classpath/biojava-for-csure.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="http://www.biosino.org/mirror/www.biojava.org/docs/api/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/Users/hk3/classpath/nmica.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/biobits"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/SSJ"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
