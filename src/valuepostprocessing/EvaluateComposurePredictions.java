@@ -39,14 +39,15 @@ public class EvaluateComposurePredictions {
 	 * @param args
 	 */
 	
-	private double chainThreshold   = 0.1;
-	private String compDir          = "/Users/hk3/Desktop/Main/Composure_Droshophila_Model/ANALYSIS_EISENLAB/2L/Eisenlab_Composure_Output_Model_20051212_With_Window_Length_350_temp";
-	private String chainFile        = "/Users/hk3/Desktop/Main/Composure_Droshophila_Model/ANALYSIS_EISENLAB/2L/Chains_From_MarkovModel_ChainFinder_In_Real_Coordinates/ChainesInRealCoordinages.gff"; // note this chains is assumed to be in real coordiantes
-	private String gsFile           = "/Users/hk3/Desktop/Main/Composure_Droshophila_Model/Unionof_DnaseI_CodingRegions_and_RedFlyEnhancers/UnionOfbdtnpDnaseAccAllStages.gff"; // note: this is the gold standard file (for example DnaseI), must be in fly release five coordinates (or the same release with chains coordinates).
-	private String pathToOutputDir  = "/Users/hk3/Desktop/Main/Composure_Droshophila_Model/ANALYSIS_EISENLAB/2L/Eisenlab_Composure_Output_Model_20051212_With_Window_Length_350_Stats";
-	private String comparisonTarget = "DnaseI"; // Note: only "DnaseI", "CodingRegions" and "RedFlyEnhancers" are accepted.
-	private double gsScoreThreshold = 0.0;// it is assumed that records in RedFlyEnhancers, CodingRegions and DnaseI all have scores greater than or equal to zero.
+	private double chainThreshold;// =  0.7;
+	private String compDir;//           = "/Users/hk3/Desktop/Main/Composure_Droshophila_Model/ANALYSIS_EISENLAB/2L/Eisenlab_Composure_Output_Model_20051212_With_Window_Length_350_temp";
+	private String chainFile;//        =  "/Users/hk3/Desktop/Main/Composure_Droshophila_Model/ANALYSIS_EISENLAB/2L/Chains_From_MarkovModel_ChainFinder_In_Real_Coordinates/ChainesInRealCoordinages.gff"; // note this chains is assumed to be in real coordiantes
+	private String gsFile;//            =  "/Users/hk3/Desktop/Main/Composure_Droshophila_Model/Unionof_DnaseI_CodingRegions_and_RedFlyEnhancers/UnionOfbdtnpDnaseAccAllStages.gff"; // note: this is the gold standard file (for example DnaseI), must be in fly release five coordinates (or the same release with chains coordinates).
+	private String pathToOutputDir;//   =  "/Users/hk3/Desktop/Main/Composure_Droshophila_Model/ANALYSIS_EISENLAB/2L/Eisenlab_Composure_Output_Model_20051212_With_Window_Length_350_Stats";
+	private String comparisonTarget;// =  "DnaseI"; // Note: only "DnaseI", "CodingRegions" and "RedFlyEnhancers" are accepted.
+	private double gsScoreThreshold;// =  0.0;// it is assumed that records in RedFlyEnhancers, CodingRegions and DnaseI all have scores greater than or equal to zero.
 	private int   offset; // for a gs record r we accept rStart-offset and rEnd+offset.
+	private int thresholdForBlockLengths;// = 2000; // some blocks are too short, this is to ignore those short blocks
 	
 	
 	//SETTERS
@@ -82,7 +83,16 @@ public class EvaluateComposurePredictions {
 		this.comparisonTarget = ct;
 	}/*setComparisonTarget*/
 	
+	public void setThresholdForBlockLengths(int l){
+		this.thresholdForBlockLengths = l;
+	}/*setThresholdForBlockLengths*/
+	
 	//GETTERS
+	
+	public int getThresholdForBlockLengths(){
+		return thresholdForBlockLengths;
+	}/*getThresholdForBlockLengths*/
+	
 	public int getOffset(){
 		return offset;
 	}/*getOffset*/
@@ -132,12 +142,15 @@ public class EvaluateComposurePredictions {
 		double gsThr    = getGsScoreThreshold();
 		String chainFileName = getChainFile(); 
 		String gsFileName    = getGsFile();
+		int lThreshold        = getThresholdForBlockLengths();
+		String pathToStats    = getPathToOutputDir();
 		
 		int numberOfRepeats =0;
-		//Random generator = new Random();
-		//FileWriter randomWriter = new FileWriter("/Users/hk3/Desktop/Main/Composure_Droshophila_Model/ANALYSIS_EISENLAB/2L/Eisenlab_Composure_Output_Model_20051212_With_Window_Length_350_Stats/Randomly_Generated_Lengths.txt");
-		FileWriter senWriter    = new FileWriter("/Users/hk3/Desktop/Main/Composure_Droshophila_Model/ANALYSIS_EISENLAB/2L/Eisenlab_Composure_Output_Model_20051212_With_Window_Length_350_Stats/sensitivity.txt");
-		FileWriter specWriter   = new FileWriter("/Users/hk3/Desktop/Main/Composure_Droshophila_Model/ANALYSIS_EISENLAB/2L/Eisenlab_Composure_Output_Model_20051212_With_Window_Length_350_Stats/specificity.txt");
+		String senOutputFile = pathToStats+"/sensitivity.txt";
+		String specOutputFile = pathToStats + "/specificity.txt";
+		FileWriter senWriter    = new FileWriter(senOutputFile);
+		FileWriter specWriter   = new FileWriter(specOutputFile);
+
 		while(numberOfRepeats<1){
 			int OverallLengthOfChains = 0;
 			int OverallLengthOFGs     = 0;
@@ -152,6 +165,10 @@ public class EvaluateComposurePredictions {
 			for(int i=0; i<listOfCompFiles.size(); i++){
 			
 				String blockId = listOfCompFiles.get(i).replaceAll(".comp", "");
+				int bLength = getBlockLength(blockId);
+				if(bLength< lThreshold){
+					continue;
+				}
 				
 				Block  block = new Block();
 				block.setBlockid(blockId);
@@ -162,9 +179,8 @@ public class EvaluateComposurePredictions {
 				//int oneBlockLength =  end- start;
 		
 			//make two temp files for comparison (if theres is any record from chains or gs in the range of this block, it is to print in these files to be compared)
-				String chainTempFileName =   "/Users/hk3/Desktop/ChainsTesting/chain_"+blockId+".gff" ;
-				String gsTempFileName    =  "/Users/hk3/Desktop/ChainsTesting/gs_"+blockId+".gff"; 
-			
+				String chainTempFileName = pathToStats+"/chain_"+blockId+".gff" ;
+				String gsTempFileName    = pathToStats+"/gs_"+blockId+".gff" ;
 			
 			
 			
@@ -216,7 +232,8 @@ public class EvaluateComposurePredictions {
 			senWriter.append(",");
 			specWriter.append(Double.toString(SPEC));
 			specWriter.append(",");
-			System.out.println("TP = " + TP + " SEN = " + SEN + " SPEC = " + SPEC);
+			System.out.println(" SEN = " + SEN + " SPEC = " + SPEC);
+			System.out.println("TP = " + TP + " FP = "+ FP + " FN = " + FN );
 			//System.out.println( " SEN_2 = " + SEN_2 + " SPEC_2 = " + SPEC_2);
 			
 			
@@ -273,7 +290,7 @@ public class EvaluateComposurePredictions {
 			 }
 			 else if(chainEmty == -1 &&  gsEmty != -1){//there is no chain
 				 this.totalLengthOfGoldStandardRecords = getOverallLengthOfFeatures(gsFileName);
-				 this.fn = totalLengthOfGoldStandardRecords;
+				 this.fn = getOverallLengthOfFeatures(gsFileName);
 				 this.tn = blockLength-fn;
 				 this.prob_of_chains =  0;
 				 this.prov_of_overlaps = 0;
@@ -348,6 +365,9 @@ public class EvaluateComposurePredictions {
 			 else{
 				 System.err.println("classification");
 			 }
+			 
+			 fisChain.close();
+			 fisGs.close();
 
 		 }/*BLOCKSTATS-constructor*/
 		 
@@ -456,6 +476,8 @@ public class EvaluateComposurePredictions {
 		 else{
 			 System.err.println("classification");
 		 }
+		 fisChain.close();
+		 fisGs.close();
 		//System.out.println("blokc length is " + blockLength + " tp = " + tp + " fp =" + fp + " fn = " + fn + " tn = " + tn );
 	}/*getStatisticsVersion2*/
 	
@@ -511,6 +533,7 @@ public class EvaluateComposurePredictions {
 				overallLength = overallLength + oneLength;
 			}
 		}
+		
 
 		return overallLength;
 	}/*getOverallLengthOfFeatures*/
@@ -624,7 +647,7 @@ public class EvaluateComposurePredictions {
 				
 			}			
 		}
-
+		pw.flush();
 		pw.close();
 		
 	}/*printRecordsWithinThisAlingmentBlockIntoATempFile*/

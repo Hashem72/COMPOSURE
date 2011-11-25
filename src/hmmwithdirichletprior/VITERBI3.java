@@ -71,6 +71,13 @@ public class VITERBI3 {
 	private String serDir = "/Users/hk3/Desktop/Main/Composure_Droshophila_Model/ANALYSIS_EISENLAB/2L/Eisenlab_Composure_Output_Model_20051212_With_Window_Length_350_SER_temp";
 	private String aliDir = "/Users/hk3/Desktop/Main/Composure_Droshophila_Model/ALIGNMENTS_EISENLAB/2L";
 	private String chainDir = "/Users/hk3/Desktop/Main/Composure_Droshophila_Model/ANALYSIS_EISENLAB/2L/Chains_From_MarkovModel_ChainFinder_In_Value_Coordinates"; 
+	private int blockLengthThreshold = 2000; // some blocks are really short, those shorter than this threshold will be ignored
+	
+	
+	//private String serDir = "/nfs/th_group/hk3/ANALYSIS_EISENLAB/2L/Eisenlab_Composure_Output_Model_20051212_With_Window_Length_350_SER_temp";
+	//private String aliDir = "/nfs/th_group/hk3/ALIGNMENTS_EISENLAB/2L";
+	//private String chainDir = "/nfs/th_group/hk3/ANALYSIS_EISENLAB/2L/Chains_From_MarkovModel_ChainFinder_In_Value_Coordinates"; 
+
 	
 	private double scoreThreshold = 0.7; 
 	private int    minLengthThreshold = 20; //  adjacent peaks with a distance shorter than this will be connected to each other
@@ -94,6 +101,11 @@ public class VITERBI3 {
 
 	
 	private boolean filterMeaningLessPicks = false;
+	
+	public void setBlockLengthThreshold(int l){
+		this.blockLengthThreshold = l;
+	}/*setBlockLengthThreshold*/
+	
 	public void setSerDir (String sd){
 		this.serDir = sd;
 	}/*setSerDir*/
@@ -113,6 +125,11 @@ public class VITERBI3 {
 	public void setTransionProbabilities(double [][] traProb){
 		this.transitionProbability = traProb;
 	}/*setTransionProbabilities*/
+	
+	
+	public int getBlockLengthThreshold(){
+		return blockLengthThreshold;
+	}/*getBlockLengthThreshold*/
 	
 	public String getSerDir(){
 		return serDir;
@@ -162,6 +179,7 @@ public class VITERBI3 {
 		
 		// TODO Auto-generated method stub
 		
+		
 		VITERBI3 app = new VITERBI3();
 		
 		
@@ -175,6 +193,7 @@ public class VITERBI3 {
 		double scoreThr                 = app.getScoreThreshold();
 		int    minLenForTrhoughs        = app.getMinLengthThreshold();
 		int    minLenForPeakDis         = app.getMinPeakLengths();
+		int lengthThresholdForBlocks  = app.getBlockLengthThreshold();
 		
 		double backGroundAlpha           []  = {0.7, 0.8, 1};     //{0.15106438458196936,0.20973711740901407,0.22900628496706044}  {0.8, 0.9, 1}
 		double greenStateAlpha           []  = {0.9,2.3,1};       //{0.1713002602078479,11.729438447100865,1.3763120488468623}; {0.9,2.3,1}
@@ -206,6 +225,11 @@ public class VITERBI3 {
 			}
 			BLOCK block = new BLOCK(aSerFile, aliDirName);
 			String blockId = block.blockId;
+			int blockLength  = app.getBlockLength(blockId);
+			if(blockLength < lengthThresholdForBlocks){
+			//System.out.println(" found sequence :" + blockId + " with too short length :" + blockLength);
+			continue;
+			}
 			Matrix2D m     = block.blockMatrix;
 			Sequence seq   = block.blockSeq;
 			ArrayList<Integer> rowsWithSumZero = block.missingData;
@@ -564,6 +588,13 @@ public class VITERBI3 {
 		}
 	}/*checkTransitionMatrixNormality*/
 	
+	
+	public int getBlockLength(String blockID){
+		String blockSpecifications[] = blockID.split("_");
+		int blockLength = Integer.parseInt(blockSpecifications[2])- Integer.parseInt(blockSpecifications[1]);
+		return blockLength;
+		
+	}/*getBlockLength*/
 
 	
 	public ArrayList<Double> mapViterbiPathToAlignment(ArrayList<String> viterbiPath, Sequence seq, ArrayList<Integer> indicesOfRowsWithSumZero){
