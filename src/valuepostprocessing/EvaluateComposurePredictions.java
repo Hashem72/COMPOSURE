@@ -150,8 +150,10 @@ public class EvaluateComposurePredictions {
 		String specOutputFile = pathToStats + "/specificity.txt";
 		FileWriter senWriter    = new FileWriter(senOutputFile);
 		FileWriter specWriter   = new FileWriter(specOutputFile);
+		Random     generateRandom = new Random();
+		
 
-		while(numberOfRepeats<1){
+		while(numberOfRepeats<5){
 			int OverallLengthOfChains = 0;
 			int OverallLengthOFGs     = 0;
 			int TP                    = 0;
@@ -170,6 +172,8 @@ public class EvaluateComposurePredictions {
 					continue;
 				}
 				
+				int aRandomPosition = generateRandom.nextInt(bLength);
+				
 				Block  block = new Block();
 				block.setBlockid(blockId);
 				//System.out.println("block  " + i + " is " + blockId +  " ************************* " );
@@ -186,14 +190,14 @@ public class EvaluateComposurePredictions {
 			
 				setOffset(0);
 				int chainOffset = getOffset();
-				printRecordsWithinThisAlingmentBlockIntoATempFile(chainFileName, blockId, chainTempFileName,chainThr,chainOffset,false);
+				printRecordsWithinThisAlingmentBlockIntoATempFile(chainFileName, blockId, chainTempFileName,chainThr,chainOffset, aRandomPosition, false);
 				setOffset(0);
 				int gsOffset = getOffset();
-				printRecordsWithinThisAlingmentBlockIntoATempFile(gsFileName,    blockId, gsTempFileName,gsThr,gsOffset, false );//normally boolean must be false, put it true only you want to shuffle locations.
+				printRecordsWithinThisAlingmentBlockIntoATempFile(gsFileName,    blockId, gsTempFileName,gsThr,gsOffset, aRandomPosition,true );//normally boolean must be false, put it true only you want to shuffle locations.
 			
-				String outputFileName = getOutputFileName(comparisonTarget);
+				
 			 
-				//getStatisticsVersion2(chainTempFileName,gsTempFileName,outputFileName,blockId,chainThr);
+				
 				
 				BLOCKSTATS bs = new BLOCKSTATS(chainTempFileName,gsTempFileName,blockId,chainThr);
 				int tp = bs.tp;
@@ -201,33 +205,18 @@ public class EvaluateComposurePredictions {
 				int fn  = bs.fn;
 				int chainsLength = bs.totalLengthOfChains;
 				int gsLength     = bs.totalLengthOfGoldStandardRecords;
-				int blockLength = bs.blockLength;
-				double probChains = bs.prob_of_chains;
-				double probGS     = bs.prob_of_gs;
-				double probOverlaps = bs.prov_of_overlaps;
-				double sen = Double.parseDouble(Integer.toString(tp))/Double.parseDouble(Integer.toString(gsLength));
-				double spec = Double.parseDouble(Integer.toString(tp))/Double.parseDouble(Integer.toString(chainsLength));
 				OverallLengthOfChains = OverallLengthOfChains + chainsLength;
 				OverallLengthOFGs     = OverallLengthOFGs + gsLength; 
 				TP                    = TP + tp;
 				FP                    = FP + fp;
 				FN                    = FN + fn;
 				
-				//System.out.println(" tp = " + tp +  " totalLenghtOfChains = " + chainsLength + " totalLengthOfGoldStandardRecords= " + " blockLength = " +blockLength );
-				//System.out.println("prov_of_chains = " +probChains + " prob_of_gs = " + probGS + " probOverlaps = " + probOverlaps );
-				//System.out.println(" Sen = " + sen + " Spec = " + spec);
-				
-				
-				
-			
 				aGFFObject.deleteFile(chainTempFileName);
 				aGFFObject.deleteFile(gsTempFileName);
-			//System.out.println("chainTempFile " + chainTempFileName + " gsTempFile = " +gsTempFileName +" output = " +  outputFileName + " bId = " +   blockId );
 			}
+			
 			double SEN = Double.parseDouble(Integer.toString(TP))/Double.parseDouble(Integer.toString(OverallLengthOFGs));
 			double SPEC = Double.parseDouble(Integer.toString(TP))/Double.parseDouble(Integer.toString(OverallLengthOfChains));
-			double SEN_2 = Double.parseDouble(Integer.toString(TP))/Double.parseDouble(Integer.toString(TP+FN));
-			double SPEC_2 = Double.parseDouble(Integer.toString(TP))/Double.parseDouble(Integer.toString(TP+FP));
 			senWriter.append(Double.toString(SEN));
 			senWriter.append(",");
 			specWriter.append(Double.toString(SPEC));
@@ -375,134 +364,9 @@ public class EvaluateComposurePredictions {
 	 }/*BLOCKSTATS*/
 	 
 	
-	public void getStatisticsVersion2(String chainFileName, String gsFileName, String outputFileName, String blockId, double chainThreshold) 
-	throws IOException, ParserException, BioException{
-		int tp = 0;
-		int fp = 0;
-		int fn = 0;
-		int tn = 0;
-		int blockLength                      = getBlockLength(blockId);
-		int totalLengthOfChains              = 0;
-		int totalLengthOfGoldStandardRecords = 0;
-		outputFileName                       =  modifyOutputFileName(outputFileName, chainThreshold);
 		
-		 FileInputStream fisChain  = new FileInputStream(new File(chainFileName)); 
-		 FileInputStream fisGs     = new FileInputStream(new File(gsFileName));
-		 int chainEmty             = fisChain.read();  //this is to check if file is empty fisChain.available();
-		 int gsEmty                = fisGs.read();;//fisGs.available();
-		 
-		 if(chainEmty == -1 && gsEmty == -1){//there is no chain no gs record
-			 tn = blockLength;
-			 writeBlockStats(outputFileName,blockId,tp,fp,fn,tn);
-		 }
-		 else if(chainEmty == -1 &&  gsEmty != -1){//there is no chain
-			 
-			 fn = getOverallLengthOfFeatures(gsFileName);
-			 tn = blockLength-fn;
-			 writeBlockStats(outputFileName,blockId,tp,fp,fn,tn);	
-			 System.out.println("length of gs = " + fn);
-		 }
-		 else if(gsEmty == -1 && chainEmty != -1){//there is no gs
-			 fp = getOverallLengthOfFeatures(chainFileName);
-			 tn = blockLength-fp;
-			 writeBlockStats(outputFileName,blockId,tp,fp,fn,tn);
-			 System.out.println("length of chains = " + fp);
-		 }
-		 else if(gsEmty != -1 && chainEmty != -1){//both files exist
-		 		
-			 totalLengthOfChains              = getOverallLengthOfFeatures(chainFileName);
-			 totalLengthOfGoldStandardRecords = getOverallLengthOfFeatures(gsFileName);
-		
-		
-			 //IntSet UnionOfFeatures = IntSets.none(); //this union of all chains and gs records in within this block
-			 IntSet UnionOfOverlaps = IntSets.none(); // this is union of overlaps (ie intesection of chain and gs records)
-			 int    totalOverlapLength =0;
-			 
-		
-			 File chainGffFile = new File(chainFileName);
-			 GFFEntrySet chaingff = GFFTools.readGFF(chainGffFile);
-		
-			 File gsGffFile  = new File(gsFileName);
-			 GFFEntrySet gsgff = GFFTools.readGFF(gsGffFile);
-		
-		
-		
-			 for(Iterator<?> chainGffI = chaingff.lineIterator(); chainGffI.hasNext() ;){
-				 Object anObject = chainGffI.next();
-				 if(anObject instanceof GFFRecord){
-					 GFFRecord chainRecord = (GFFRecord) anObject;
-					 int oneChainStart = chainRecord.getStart();
-					 int oneChainEnd   = chainRecord.getEnd();
-					 IntSet OneChainRange = IntSets.range(oneChainStart, oneChainEnd);
-					 for(Iterator<?> gsGffI = gsgff.lineIterator(); gsGffI.hasNext();){
-						 Object anotherObject = gsGffI.next();
-						 if(anotherObject instanceof GFFRecord){
-							 GFFRecord gsRecord = (GFFRecord) anotherObject;
-							 int oneGsStart = gsRecord.getStart();
-							 int oneGsEnd   = gsRecord.getEnd();
-							 IntSet oneGsRange = IntSets.range(oneGsStart, oneGsEnd);
-							 //IntSet oneUnion = getUnionOfTwoIntSets(OneChainRange,oneGsRange);
-							 //UnionOfFeatures = getUnionOfTwoIntSets(UnionOfFeatures,oneUnion);
-							 IntSet OneIntesection = IntSets.intersection(OneChainRange,oneGsRange);
-							 if(!OneIntesection.isEmpty()){
-								 int overlapStar = Math.max(oneChainStart,oneGsStart);
-								 int overlapEnd  = Math.min(oneChainEnd, oneGsEnd);
-								 int oneOverlapLength = overlapEnd- overlapStar;
-								 totalOverlapLength   = totalOverlapLength+oneOverlapLength;
-							 }
-							 UnionOfOverlaps   = getUnionOfTwoIntSets(UnionOfOverlaps,OneIntesection);		
-						//System.out.println("chainSt = " + oneChainStart + " chainEnd = "+ oneChainEnd +  " gsStart = " + oneGsStart + " gsEnd " + oneGsEnd);
-						 }					
-					 }/*end of gs iterator*/
-				 }
-			 }/*end of  chain iterator*/
-			 	tp  = totalOverlapLength;//UnionOfOverlaps.size()-1;
-			 	fp = totalLengthOfChains- tp;
-			 	fn  = totalLengthOfGoldStandardRecords- tp;
-			 	tn = blockLength -totalLengthOfChains-totalLengthOfGoldStandardRecords +tp ;
-			 	writeBlockStats(outputFileName,blockId,tp,fp,fn,tn);
-			 	double probability_of_chain = Double.parseDouble(Integer.toString(totalLengthOfChains))/Double.parseDouble(Integer.toString(blockLength));
-			 	double probability_of_gs    = Double.parseDouble(Integer.toString(totalLengthOfGoldStandardRecords))/Double.parseDouble(Integer.toString(blockLength));
-			 	System.out.println("tp = " + tp + " totalLenghtOfChains = " + totalLengthOfChains + " totalLengthOfGoldStandardRecords = " + totalLengthOfGoldStandardRecords + " blockLength = " + blockLength);
-			 	System.out.println("prob_of_chains = " + probability_of_chain + " prob_of_gs = " + probability_of_gs + " prob_of_overlap =" + probability_of_chain*probability_of_gs);
-			 	
-			 	//System.out.println("tp = " + tp + " fp = " + fp + " fn = " + fn + " tn = " + tn);
-			 	
-			 	double Sen = Double.parseDouble(Integer.toString(tp))/Double.parseDouble(Integer.toString(tp+fn));
-			 	double Spec = Double.parseDouble(Integer.toString(tp))/Double.parseDouble(Integer.toString(tp+fp));
-			 	System.out.println("Sen = " + Sen + " Spec = " + Spec);
-			 	
-		 		}
-		 else{
-			 System.err.println("classification");
-		 }
-		 fisChain.close();
-		 fisGs.close();
-		//System.out.println("blokc length is " + blockLength + " tp = " + tp + " fp =" + fp + " fn = " + fn + " tn = " + tn );
-	}/*getStatisticsVersion2*/
 	
 	
-	
-	
-	
-	public String getOutputFileName(String comparsionTarget){
-		String fileName = null;
-		if(comparsionTarget.equals("DnaseI")){
-			fileName = pathToOutputDir+"/DnaseIStats.txt";
-		}
-		else if(comparsionTarget.equals("CodingRegions")){
-			fileName = pathToOutputDir+"/GenesStats.txt";
-		}
-		else if(comparsionTarget.equals("RedFlyEnhancers")){
-			fileName = pathToOutputDir+"/EnhancersStats.txt";
-		}
-		else{
-			System.err.println("Unkown comparison target! The accepted Strings are  only DnaseI or CodingRegions or RedFlyEnhancers ");
-			System.exit(0);
-		}
-		return fileName;
-	}/*getOutputFileName*/
-
 	
 	public void writeBlockStats(String outputFileName , String blockID, int truePositive, int falsePositive,int falseNegative, int trueNegative ) throws IOException{
 		FileWriter fw     = new FileWriter(outputFileName,true);
@@ -586,15 +450,15 @@ public class EvaluateComposurePredictions {
 	
 
 	
-	public void printRecordsWithinThisAlingmentBlockIntoATempFile(String aGffFile, String blockId, String outputFileName, double scoreThreshold, int offset, boolean shufleLengths)//lengthOfTransromation, if required locations is transformed in order to get the significant of measurement in real data.
+	public void printRecordsWithinThisAlingmentBlockIntoATempFile(String aGffFile, String blockId, String outputFileName, double scoreThreshold, int offset,int randomPosition , boolean shufleLengths)//lengthOfTransromation, if required locations is transformed in order to get the significant of measurement in real data.
 	throws ParserException, BioException, IOException{
 		String [] idSpecifications = blockId.split("\\_");
 		String chr = idSpecifications[0];
 		int    blockStart = Integer.parseInt( idSpecifications[1]);
 		int   blockEnd   =  Integer.parseInt(idSpecifications[2]);
 		IntSet blockRange = IntSets.range(blockStart, blockEnd);
-		Random     generateRandom = new Random();
-			
+		int blockLength      = blockEnd-blockStart;
+				
 		File    tempFile    = new File(outputFileName);
 		PrintWriter pw      = new PrintWriter(tempFile);
 		GFFWriter  gffw     = new GFFWriter(pw);
@@ -627,20 +491,54 @@ public class EvaluateComposurePredictions {
 						int overlapEnd   = oneIntersection.getMax();
 						if(shufleLengths){
 							int overlapLength = overlapEnd-overlapStart;
-							int blockLength      = blockEnd-blockStart;
 							int upperBoundForStart = blockLength-overlapLength;
-							int randomStart = generateRandom.nextInt(upperBoundForStart)+blockStart;
-							overlapStart = randomStart;
-							overlapEnd   = overlapStart + overlapLength;
-							//System.out.println("blockS " + blockStart + " rStart = " + overlapStart + " rEnd = " + overlapEnd + " bEnd = " + blockEnd);
+								int overlapNewStart = overlapStart + randomPosition;
+								int overlapNewEnd   = overlapEnd   + randomPosition;
+								
+								
+								if(overlapNewEnd <= blockEnd){
+									r.setStart(overlapNewStart);
+									r.setEnd(overlapNewEnd);
+									r.setScore(oneScore);
+									gffw.recordLine(r);	
+								}
+								else if (overlapNewStart < blockEnd  && overlapNewEnd >  blockEnd){
+									// feature is split to two parts: one sits bottom of block the other at top of the block
+									//bottom one:
+									r.setStart(overlapNewStart);
+									r.setEnd(blockEnd);
+									r.setScore(oneScore);
+									gffw.recordLine(r);	
+									
+									//top one:
+									int offsite = overlapNewEnd - blockEnd;
+									r.setStart(blockStart);
+									r.setEnd(blockStart + offsite);
+									r.setScore(oneScore);
+									gffw.recordLine(r);	
+								}
+								else if (overlapNewStart >= blockEnd){
+									int offsite = overlapNewStart - blockEnd;
+									r.setStart(blockStart + offsite);
+									r.setEnd(blockStart + offsite + overlapLength);
+									r.setScore(oneScore);
+									gffw.recordLine(r);
+								}
+								else{
+									System.err.println("Not supposed to be here!! Some thing is wrong! ");
+								}
+							//}/*else*/
+
 							
 						}
-						r.setStart(overlapStart);
-						r.setEnd(overlapEnd);
-						r.setScore(oneScore);
-						gffw.recordLine(r);
-						//System.out.println("from gro = chr " + gro.getSeqName() + " st = " + gro.getStart() + " end = " + gro.getEnd() );
-						//System.out.println("from r = chr " + r.getSeqName() + " st = " + r.getStart() + " end = " + r.getEnd() );
+						else{
+							r.setStart(overlapStart);
+							r.setEnd(overlapEnd);
+							r.setScore(oneScore);
+							gffw.recordLine(r);
+
+							
+						}
 					}
 				}
 				

@@ -14,8 +14,22 @@ public class SHORTSEQUENCERMOMOVAL {
 	 * directory name and and a length threshold are passed as arguments. blocks with a length shorter than length threshold will be deleted.
 	 */
 	
-	public String dirName;
-	public int  lengthThreshold;
+	private String dirName;
+	private int  lengthThreshold;
+	private String chainDir;
+	private String outputFileName;
+	
+	
+	
+	
+	
+	public void setChainDir(String cd){
+		this.chainDir = cd;
+	}/*setChainDir*/
+	
+	public void setOutputFileName(String ofn){
+		this.outputFileName = ofn;
+	}/*setOutputFileName*/
 	
 	public void setDirName(String dn){
 		this.dirName = dn;
@@ -41,7 +55,8 @@ public class SHORTSEQUENCERMOMOVAL {
 	}/*main*/
 	
 	private void run(String [] args) throws Exception{
-		deleteShortFilesFromShortBlocksInthisDirectory(lengthThreshold, dirName);
+		//deleteShortFilesFromShortBlocksInthisDirectory(lengthThreshold, dirName);
+		getListBlocksThatHaveNotChains(dirName,chainDir, outputFileName);
 	}/*run*/
 	
 	public void deleteShortFilesFromShortBlocksInthisDirectory(int thresholdForLength, String fullNameOfDir){
@@ -81,6 +96,30 @@ public class SHORTSEQUENCERMOMOVAL {
 		System.out.println("There were " + numberOfFiles + " file(s) and from them " + numberOfDeletedFiles + " file(s) deleted." );
 		
 	}/*deleteShortFilesFromShortBlocksInthisDirectory*/
+	
+	public void getListBlocksThatHaveNotChains(String serDir, String chainsDir,  String outputFileName){
+		File sd = new File(serDir);
+		String [] children = sd.list();
+		if(children == null){
+			System.out.println("Either directory is empty or is not a directory!");
+		}
+		else{
+			for(String child:children){
+				if(!child.startsWith(".")){
+					String [] blockName = child.split(".");
+					String blockId    = blockName[0];
+					String gffFileName = chainsDir+"/"+blockId+".gff";
+					File gffFile = new File(gffFileName);
+					boolean fileExists = gffFile.exists();
+					if(fileExists){
+						continue;
+					}
+					System.out.println(child);
+				}
+			}
+		}
+		
+	}/*getListBlocksThatHaveNotChains*/
 	
 	public void deletFile(String file){
 		File  f = new File(file);
